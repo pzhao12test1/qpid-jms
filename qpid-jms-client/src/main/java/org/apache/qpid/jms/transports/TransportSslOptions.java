@@ -38,18 +38,15 @@ public class TransportSslOptions extends TransportOptions {
     public static final int DEFAULT_SSL_PORT = 5671;
 
     private static final String JAVAX_NET_SSL_KEY_STORE = "javax.net.ssl.keyStore";
-    private static final String JAVAX_NET_SSL_KEY_STORE_TYPE = "javax.net.ssl.keyStoreType";
     private static final String JAVAX_NET_SSL_KEY_STORE_PASSWORD = "javax.net.ssl.keyStorePassword";
     private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
-    private static final String JAVAX_NET_SSL_TRUST_STORE_TYPE = "javax.net.ssl.trustStoreType";
     private static final String JAVAX_NET_SSL_TRUST_STORE_PASSWORD = "javax.net.ssl.trustStorePassword";
 
     private String keyStoreLocation;
     private String keyStorePassword;
     private String trustStoreLocation;
     private String trustStorePassword;
-    private String keyStoreType;
-    private String trustStoreType;
+    private String storeType = DEFAULT_STORE_TYPE;
     private String[] enabledCipherSuites;
     private String[] disabledCipherSuites;
     private String[] enabledProtocols;
@@ -64,10 +61,8 @@ public class TransportSslOptions extends TransportOptions {
 
     public TransportSslOptions() {
         setKeyStoreLocation(System.getProperty(JAVAX_NET_SSL_KEY_STORE));
-        setKeyStoreType(System.getProperty(JAVAX_NET_SSL_KEY_STORE_TYPE, DEFAULT_STORE_TYPE));
         setKeyStorePassword(System.getProperty(JAVAX_NET_SSL_KEY_STORE_PASSWORD));
         setTrustStoreLocation(System.getProperty(JAVAX_NET_SSL_TRUST_STORE));
-        setTrustStoreType(System.getProperty(JAVAX_NET_SSL_TRUST_STORE_TYPE, DEFAULT_STORE_TYPE));
         setTrustStorePassword(System.getProperty(JAVAX_NET_SSL_TRUST_STORE_PASSWORD));
     }
 
@@ -131,42 +126,18 @@ public class TransportSslOptions extends TransportOptions {
     }
 
     /**
+     * @return the storeType
+     */
+    public String getStoreType() {
+        return storeType;
+    }
+
+    /**
      * @param storeType
      *        the format that the store files are encoded in.
      */
     public void setStoreType(String storeType) {
-        setKeyStoreType(storeType);
-        setTrustStoreType(storeType);
-    }
-
-    /**
-     * @return the keyStoreType
-     */
-    public String getKeyStoreType() {
-        return keyStoreType;
-    }
-
-    /**
-     * @param keyStoreType
-     *        the format that the keyStore file is encoded in
-     */
-    public void setKeyStoreType(String keyStoreType) {
-        this.keyStoreType = keyStoreType;
-    }
-
-    /**
-     * @return the trustStoreType
-     */
-    public String getTrustStoreType() {
-        return trustStoreType;
-    }
-
-    /**
-     * @param trustStoreType
-     *        the format that the trustStore file is encoded in
-     */
-    public void setTrustStoreType(String trustStoreType) {
-        this.trustStoreType = trustStoreType;
+        this.storeType = storeType;
     }
 
     /**
@@ -322,8 +293,7 @@ public class TransportSslOptions extends TransportOptions {
         copy.setKeyStorePassword(getKeyStorePassword());
         copy.setTrustStoreLocation(getTrustStoreLocation());
         copy.setTrustStorePassword(getTrustStorePassword());
-        copy.setKeyStoreType(getKeyStoreType());
-        copy.setTrustStoreType(getTrustStoreType());
+        copy.setStoreType(getStoreType());
         copy.setEnabledCipherSuites(getEnabledCipherSuites());
         copy.setDisabledCipherSuites(getDisabledCipherSuites());
         copy.setEnabledProtocols(getEnabledProtocols());

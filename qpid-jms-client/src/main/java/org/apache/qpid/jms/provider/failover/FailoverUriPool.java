@@ -284,13 +284,6 @@ public class FailoverUriPool {
         return nestedOptions;
     }
 
-    @Override
-    public String toString() {
-        synchronized (uris) {
-            return "URI Pool { " + uris + " }";
-        }
-    }
-
     //----- Internal methods that require the locks be held ------------------//
 
     private boolean contains(URI newURI) {

@@ -76,11 +76,6 @@ public class ProviderWrapper<E extends Provider> implements Provider, ProviderLi
     }
 
     @Override
-    public List<URI> getAlternateURIs() {
-        return next.getAlternateURIs();
-    }
-
-    @Override
     public void create(JmsResource resource, AsyncResult request) throws IOException, JMSException, UnsupportedOperationException {
         next.create(resource, request);
     }
@@ -208,6 +203,11 @@ public class ProviderWrapper<E extends Provider> implements Provider, ProviderLi
     @Override
     public void onProviderException(Exception cause) {
         listener.onProviderException(cause);
+    }
+
+    @Override
+    public void onRemoteDiscovery(List<URI> remotes) {
+        listener.onRemoteDiscovery(remotes);
     }
 
     /**

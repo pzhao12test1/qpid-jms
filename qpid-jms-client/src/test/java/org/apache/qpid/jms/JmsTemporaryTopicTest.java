@@ -23,7 +23,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -35,8 +34,7 @@ import org.junit.Test;
 
 public class JmsTemporaryTopicTest extends QpidJmsTestCase {
 
-    private static final String NAME_PROP = "address";
-    private static final String LEGACY_NAME_PROP = "name";
+    private static final String NAME_PROP = "name";
 
     @Test
     public void testIsQueue() {
@@ -121,34 +119,11 @@ public class JmsTemporaryTopicTest extends QpidJmsTestCase {
 
     @Test
     public void testSetProperties() throws Exception {
-        setPropertiesTestImpl(true, false);
-    }
-
-    @Test
-    public void testSetPropertiesWithLegacyNameProp() throws Exception {
-        setPropertiesTestImpl(false, true);
-    }
-
-    @Test
-    public void testSetPropertiesWithBothNameProps() throws Exception {
-        setPropertiesTestImpl(true, true);
-    }
-
-    private void setPropertiesTestImpl(boolean addNameProp, boolean addLegacyNameProp) {
         String name = "myTopic";
         JmsTemporaryTopic topic = new JmsTemporaryTopic();
 
-        assertNull("Shouldnt have name yet", topic.getTopicName());
-
         Map<String, String> props = new HashMap<String, String>();
-        if(addNameProp) {
-            props.put(NAME_PROP, name);
-        }
-
-        if(addLegacyNameProp) {
-            props.put(LEGACY_NAME_PROP, name);
-        }
-
+        props.put(NAME_PROP, name);
         Map<String, String> unusedProps = topic.setProperties(props);
 
         assertEquals("Unexpected value for name", name, topic.getTopicName());
@@ -168,7 +143,7 @@ public class JmsTemporaryTopicTest extends QpidJmsTestCase {
         String name = "myTopic";
         String unusedKey = "unusedKey";
         String unusedValue = "unusedValue";
-        JmsTemporaryTopic topic = new JmsTemporaryTopic();
+        JmsTopic topic = new JmsTopic();
 
         Map<String, String> props = new HashMap<String, String>();
         props.put(NAME_PROP, name);

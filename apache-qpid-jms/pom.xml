@@ -18,7 +18,7 @@
   <parent>
     <groupId>org.apache.qpid</groupId>
     <artifactId>qpid-jms-parent</artifactId>
-    <version>0.28.0-SNAPSHOT</version>
+    <version>0.24.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -58,7 +58,6 @@
               <descriptors>
                 <descriptor>src/main/assembly/bin.xml</descriptor>
               </descriptors>
-              <tarLongFileMode>posix</tarLongFileMode>
             </configuration>
           </execution>
         </executions>
@@ -84,7 +83,7 @@
                   <descriptors>
                     <descriptor>src/main/assembly/src.xml</descriptor>
                   </descriptors>
-                  <tarLongFileMode>posix</tarLongFileMode>
+                  <tarLongFileMode>gnu</tarLongFileMode>
                 </configuration>
               </execution>
             </executions>

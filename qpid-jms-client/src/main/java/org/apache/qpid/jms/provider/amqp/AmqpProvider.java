@@ -19,7 +19,6 @@ package org.apache.qpid.jms.provider.amqp;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -34,7 +33,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.JMSException;
-import javax.jms.JMSSecurityRuntimeException;
 import javax.net.ssl.SSLContext;
 
 import org.apache.qpid.jms.JmsTemporaryDestination;
@@ -61,6 +59,7 @@ import org.apache.qpid.jms.provider.ProviderFuture;
 import org.apache.qpid.jms.provider.ProviderListener;
 import org.apache.qpid.jms.provider.amqp.builders.AmqpClosedConnectionBuilder;
 import org.apache.qpid.jms.provider.amqp.builders.AmqpConnectionBuilder;
+import org.apache.qpid.jms.sasl.GssapiMechanism;
 import org.apache.qpid.jms.sasl.Mechanism;
 import org.apache.qpid.jms.sasl.SaslMechanismFinder;
 import org.apache.qpid.jms.transports.Transport;
@@ -113,7 +112,7 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
     private static final NoOpAsyncResult NOOP_REQUEST = new NoOpAsyncResult();
 
     private volatile ProviderListener listener;
-    private volatile AmqpConnection connection;
+    private AmqpConnection connection;
     private AmqpSaslAuthenticator authenticator;
     private final Transport transport;
     private String vhost;
@@ -219,9 +218,7 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
         });
 
         if (connectionInfo.getConnectTimeout() != JmsConnectionInfo.INFINITE) {
-            if (!connectRequest.sync(connectionInfo.getConnectTimeout(), TimeUnit.MILLISECONDS)) {
-                throw new IOException("Timed out while waiting to connect");
-            }
+            connectRequest.sync(connectionInfo.getConnectTimeout(), TimeUnit.MILLISECONDS);
         } else {
             connectRequest.sync();
         }
@@ -1021,7 +1018,7 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
         // Using nano time since it is not related to the wall clock, which may change
         long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
         long deadline = protonTransport.tick(now);
-        if (deadline != 0) {
+        if (deadline > 0) {
             long delay = deadline - now;
             LOG.trace("IdleTimeoutCheck being initiated, initial delay: {}", delay);
             nextIdleTimeoutCheck = serializer.schedule(new IdleTimeoutCheck(), delay, TimeUnit.MILLISECONDS);
@@ -1061,6 +1058,13 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
         ProviderListener listener = this.listener;
         if (listener != null) {
             listener.onResourceClosed(resource, cause);
+        }
+    }
+
+    public void fireRemotesDiscovered(List<URI> remotes) {
+        ProviderListener listener = this.listener;
+        if (listener != null) {
+            listener.onRemoteDiscovery(remotes);
         }
     }
 
@@ -1286,27 +1290,6 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
         return remoteURI;
     }
 
-    @Override
-    public List<URI> getAlternateURIs() {
-        List<URI> alternates = new ArrayList<>();
-
-        if (connection != null) {
-            // If there are failover servers in the open then we signal that to the listeners
-            List<AmqpRedirect> failoverList = connection.getProperties().getFailoverServerList();
-            if (!failoverList.isEmpty()) {
-                for (AmqpRedirect redirect : failoverList) {
-                    try {
-                        alternates.add(redirect.toURI());
-                    } catch (Exception ex) {
-                        LOG.trace("Error while creating URI from failover server: {}", redirect);
-                    }
-                }
-            }
-        }
-
-        return alternates;
-    }
-
     public org.apache.qpid.proton.engine.Transport getProtonTransport() {
         return protonTransport;
     }
@@ -1392,23 +1375,25 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
         }
     }
 
-    private Mechanism findSaslMechanism(String[] remoteMechanisms) throws JMSSecurityRuntimeException {
+    private Mechanism findSaslMechanism(String[] remoteMechanisms) {
 
         Mechanism mechanism = SaslMechanismFinder.findMatchingMechanism(
             connectionInfo.getUsername(), connectionInfo.getPassword(), transport.getLocalPrincipal(), saslMechanisms, remoteMechanisms);
 
-        mechanism.setUsername(connectionInfo.getUsername());
-        mechanism.setPassword(connectionInfo.getPassword());
+        if (mechanism != null) {
+            mechanism.setUsername(connectionInfo.getUsername());
+            mechanism.setPassword(connectionInfo.getPassword());
 
-        try {
-            Map<String, String> saslOptions = PropertyUtil.filterProperties(PropertyUtil.parseQuery(getRemoteURI()), "sasl.options.");
-            if (!saslOptions.containsKey("serverName")) {
-                saslOptions.put("serverName", remoteURI.getHost());
+            try {
+                Map<String, String> saslOptions = PropertyUtil.filterProperties(PropertyUtil.parseQuery(getRemoteURI()), "sasl.options.");
+                if (!saslOptions.containsKey("serverName")) {
+                    saslOptions.put("serverName", remoteURI.getHost());
+                }
+
+                mechanism.init(Collections.unmodifiableMap(saslOptions));
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to apply sasl options to mechanism: " + mechanism.getName() + ", reason: " + ex.toString(), ex);
             }
-
-            mechanism.init(Collections.unmodifiableMap(saslOptions));
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to apply sasl options to mechanism: " + mechanism.getName() + ", reason: " + ex.toString(), ex);
         }
 
         return mechanism;
@@ -1432,7 +1417,7 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
                         fireProviderException(new IOException("Transport closed due to the peer exceeding our requested idle-timeout"));
                     }
                 } else {
-                    if (deadline != 0) {
+                    if (deadline > 0) {
                         long delay = deadline - now;
                         checkScheduled = true;
                         LOG.trace("IdleTimeoutCheck rescheduling with delay: {}", delay);

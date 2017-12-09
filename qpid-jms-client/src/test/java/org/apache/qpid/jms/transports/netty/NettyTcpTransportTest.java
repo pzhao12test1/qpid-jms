@@ -45,8 +45,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.kqueue.KQueue;
-import io.netty.channel.kqueue.KQueueEventLoopGroup;
 import io.netty.util.ResourceLeakDetector;
 import io.netty.util.ResourceLeakDetector.Level;
 
@@ -492,7 +490,6 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
                 assertTrue(transport.isConnected());
 
                 ByteBuf sendBuffer = transport.allocateSendBuffer(10 * 1024 * 1024);
-                sendBuffer.writeBytes(new byte[] {0, 1, 2, 3, 4});
 
                 transport.close();
 
@@ -528,7 +525,7 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
 
             TransportOptions options = createClientOptions();
             options.setUseEpoll(useEpoll);
-            options.setUseKQueue(false);
+
             Transport transport = createTransport(serverLocation, testListener, options);
             try {
                 transport.connect(null);
@@ -574,76 +571,6 @@ public class NettyTcpTransportTest extends QpidJmsTestCase {
             assertTrue(message, group.get(transport) instanceof EpollEventLoopGroup);
         } else {
             assertFalse(message, group.get(transport) instanceof EpollEventLoopGroup);
-        }
-    }
-
-    @Test(timeout = 60 * 1000)
-    public void testConnectToServerWithKQueueEnabled() throws Exception {
-        doTestKQueueSupport(true);
-    }
-
-    @Test(timeout = 60 * 1000)
-    public void testConnectToServerWithKQueueDisabled() throws Exception {
-        doTestKQueueSupport(false);
-    }
-
-    private void doTestKQueueSupport(boolean useKQueue) throws Exception {
-        assumeTrue(KQueue.isAvailable());
-
-        try (NettyEchoServer server = createEchoServer(createServerOptions())) {
-            server.start();
-
-            int port = server.getServerPort();
-            URI serverLocation = new URI("tcp://localhost:" + port);
-
-            TransportOptions options = createClientOptions();
-            options.setUseKQueue(useKQueue);
-            options.setUseEpoll(false);
-            Transport transport = createTransport(serverLocation, testListener, options);
-            try {
-                transport.connect(null);
-                LOG.info("Connected to server:{} as expected.", serverLocation);
-            } catch (Exception e) {
-                fail("Should have connected to the server at " + serverLocation + " but got exception: " + e);
-            }
-
-            assertTrue(transport.isConnected());
-            assertEquals(serverLocation, transport.getRemoteLocation());
-            assertKQueue("Transport should be using Kqueue", useKQueue, transport);
-
-            transport.close();
-
-            // Additional close should not fail or cause other problems.
-            transport.close();
-        }
-
-        assertTrue(!transportClosed);  // Normal shutdown does not trigger the event.
-        assertTrue(exceptions.isEmpty());
-        assertTrue(data.isEmpty());
-    }
-
-    private void assertKQueue(String message, boolean expected, Transport transport) throws Exception {
-        Field group = null;
-        Class<?> transportType = transport.getClass();
-
-        while (transportType != null && group == null) {
-            try {
-                group = transportType.getDeclaredField("group");
-            } catch (NoSuchFieldException error) {
-                transportType = transportType.getSuperclass();
-                if (Object.class.equals(transportType)) {
-                    transportType = null;
-                }
-            }
-        }
-
-        assertNotNull("Transport implementation unknown", group);
-
-        group.setAccessible(true);
-        if (expected) {
-            assertTrue(message, group.get(transport) instanceof KQueueEventLoopGroup);
-        } else {
-            assertFalse(message, group.get(transport) instanceof KQueueEventLoopGroup);
         }
     }
 

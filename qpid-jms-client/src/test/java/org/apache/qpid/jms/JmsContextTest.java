@@ -22,11 +22,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.nullable;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -38,7 +33,6 @@ import javax.jms.IllegalStateException;
 import javax.jms.IllegalStateRuntimeException;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
-import javax.jms.JMSRuntimeException;
 import javax.jms.JMSSecurityException;
 import javax.jms.MapMessage;
 import javax.jms.Message;
@@ -53,6 +47,7 @@ import org.apache.qpid.jms.provider.mock.MockRemotePeer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 /**
@@ -123,24 +118,6 @@ public class JmsContextTest extends JmsConnectionTestSupport {
     }
 
     @Test
-    public void testCreateContextWithNegativeSessionModeThrowsJMSRE() {
-        try {
-            context.createContext(-1);
-            fail("Should throw JMSRuntimeException");
-        } catch (JMSRuntimeException jmsre) {
-        }
-    }
-
-    @Test
-    public void testCreateContextWithSessionModeOutOfRangeThrowsJMSRE() {
-        try {
-            context.createContext(4);
-            fail("Should throw JMSRuntimeException");
-        } catch (JMSRuntimeException jmsre) {
-        }
-    }
-
-    @Test
     public void testCreateTextMessage() throws JMSException {
         TextMessage message = context.createTextMessage();
         assertNotNull(message);
@@ -201,9 +178,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
         // No session until needed.
-        Mockito.verify(connection, Mockito.times(0)).createSession(anyInt());
+        Mockito.verify(connection, Mockito.times(0)).createSession(Matchers.anyInt());
         assertNotNull(context.createTemporaryQueue());
-        Mockito.verify(connection, Mockito.times(1)).createSession(anyInt());
+        Mockito.verify(connection, Mockito.times(1)).createSession(Matchers.anyInt());
 
         context.close();
     }
@@ -214,9 +191,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
-        Mockito.when(connection.createSession(anyInt())).thenReturn(session);
-        Mockito.when(session.createConsumer(any(Destination.class))).thenReturn(consumer);
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
+        Mockito.when(session.createConsumer(Matchers.any(Destination.class))).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -227,7 +204,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Destination.class));
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Destination.class));
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -237,9 +214,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
-        Mockito.when(connection.createSession(anyInt())).thenReturn(session);
-        Mockito.when(session.createConsumer(any(Destination.class))).thenReturn(consumer);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
+        Mockito.when(session.createConsumer(Matchers.any(Destination.class))).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -250,7 +227,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Destination.class));
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Destination.class));
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -260,9 +237,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createConsumer(any(Destination.class), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createConsumer(Matchers.any(Destination.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -273,7 +250,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -283,9 +260,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createConsumer(any(Destination.class), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createConsumer(Matchers.any(Destination.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -296,7 +273,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -306,9 +283,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
-        Mockito.when(session.createConsumer(any(Destination.class), anyString(), anyBoolean())).thenReturn(consumer);
+        Mockito.when(session.createConsumer(Matchers.any(Destination.class), Matchers.anyString(), Matchers.anyBoolean())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -319,7 +296,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Topic.class), anyString(), anyBoolean());
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyBoolean());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -329,9 +306,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
-        Mockito.when(session.createConsumer(any(Destination.class), anyString(), anyBoolean())).thenReturn(consumer);
+        Mockito.when(session.createConsumer(Matchers.any(Destination.class), Matchers.anyString(), Matchers.anyBoolean())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -342,7 +319,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Topic.class), anyString(), anyBoolean());
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyBoolean());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -352,9 +329,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createDurableConsumer(any(Topic.class), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -365,7 +342,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -375,9 +352,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
-        Mockito.when(session.createDurableConsumer(any(Topic.class), anyString())).thenReturn(consumer);
+        Mockito.when(session.createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -388,7 +365,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -398,9 +375,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createDurableConsumer(any(Topic.class), anyString(), anyString(), anyBoolean())).thenReturn(consumer);
+        Mockito.when(session.createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString(), Matchers.anyBoolean())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -411,7 +388,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(any(Topic.class), anyString(), anyString(), anyBoolean());
+        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString(), Matchers.anyBoolean());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -421,9 +398,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createDurableConsumer(any(Topic.class), anyString(), anyString(), anyBoolean())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString(), Matchers.anyBoolean())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -434,7 +411,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(any(Topic.class), anyString(), anyString(), anyBoolean());
+        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString(), Matchers.anyBoolean());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -444,9 +421,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createSharedConsumer(any(Topic.class), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -457,7 +434,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -467,9 +444,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
-        Mockito.when(session.createSharedConsumer(any(Topic.class), anyString())).thenReturn(consumer);
+        Mockito.when(session.createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -480,7 +457,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -490,9 +467,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
-        Mockito.when(session.createSharedConsumer(any(Topic.class), anyString(), anyString())).thenReturn(consumer);
+        Mockito.when(session.createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -503,7 +480,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(any(Topic.class), anyString(), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -513,9 +490,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createSharedConsumer(any(Topic.class), anyString(), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -526,7 +503,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(any(Topic.class), anyString(), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -536,9 +513,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createSharedDurableConsumer(any(Topic.class), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -549,7 +526,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -559,9 +536,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createSharedDurableConsumer(any(Topic.class), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -572,7 +549,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -582,9 +559,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createSharedDurableConsumer(any(Topic.class), anyString(), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -595,7 +572,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(any(Topic.class), anyString(), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -605,9 +582,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsMessageConsumer consumer = Mockito.mock(JmsMessageConsumer.class);
 
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createSharedDurableConsumer(any(Topic.class), anyString(), anyString())).thenReturn(consumer);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(session.createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString())).thenReturn(consumer);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -618,7 +595,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(any(Topic.class), anyString(), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -628,9 +605,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsQueueBrowser browser = Mockito.mock(JmsQueueBrowser.class);
 
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
-        Mockito.when(session.createBrowser(any(Queue.class))).thenReturn(browser);
+        Mockito.when(session.createBrowser(Matchers.any(Queue.class))).thenReturn(browser);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -641,7 +618,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createBrowser(any(Queue.class));
+        Mockito.verify(session, Mockito.times(1)).createBrowser(Matchers.any(Queue.class));
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -651,9 +628,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsQueueBrowser browser = Mockito.mock(JmsQueueBrowser.class);
 
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
-        Mockito.when(session.createBrowser(any(Queue.class))).thenReturn(browser);
+        Mockito.when(session.createBrowser(Matchers.any(Queue.class))).thenReturn(browser);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -664,7 +641,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createBrowser(any(Queue.class));
+        Mockito.verify(session, Mockito.times(1)).createBrowser(Matchers.any(Queue.class));
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -674,9 +651,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsQueueBrowser browser = Mockito.mock(JmsQueueBrowser.class);
 
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createBrowser(any(Queue.class))).thenReturn(browser);
+        Mockito.when(session.createBrowser(Matchers.any(Queue.class))).thenReturn(browser);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(true);
@@ -687,7 +664,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createBrowser(any(Queue.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createBrowser(Matchers.any(Queue.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(1)).start();
     }
 
@@ -697,9 +674,9 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsSession session = Mockito.mock(JmsSession.class);
         JmsQueueBrowser browser = Mockito.mock(JmsQueueBrowser.class);
 
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createBrowser(any(Queue.class))).thenReturn(browser);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(session.createBrowser(Matchers.any(Queue.class))).thenReturn(browser);
 
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
         context.setAutoStart(false);
@@ -710,7 +687,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createBrowser(any(Queue.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createBrowser(Matchers.any(Queue.class), Matchers.anyString());
         Mockito.verify(connection, Mockito.times(0)).start();
     }
 
@@ -871,7 +848,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).unsubscribe(anyString());
+        Mockito.verify(session, Mockito.times(1)).unsubscribe(Matchers.anyString());
     }
 
     @Test
@@ -889,7 +866,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createTopic(anyString());
+        Mockito.verify(session, Mockito.times(1)).createTopic(Matchers.anyString());
     }
 
     @Test
@@ -907,7 +884,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createQueue(anyString());
+        Mockito.verify(session, Mockito.times(1)).createQueue(Matchers.anyString());
     }
 
     @Test
@@ -1069,11 +1046,11 @@ public class JmsContextTest extends JmsConnectionTestSupport {
     public void testRuntimeExceptionOnCreateConsumer() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createConsumer(any(Destination.class));
+        Mockito.doThrow(IllegalStateException.class).when(session).createConsumer(Matchers.any(Destination.class));
 
         try {
             context.createConsumer(context.createTemporaryQueue());
@@ -1083,18 +1060,18 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Destination.class));
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Destination.class));
     }
 
     @Test
     public void testRuntimeExceptionOnCreateConsumerWithSelector() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createConsumer(any(Destination.class), anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createConsumer(Matchers.any(Destination.class), Matchers.anyString());
 
         try {
             context.createConsumer(context.createTemporaryQueue(), "a = b");
@@ -1104,18 +1081,18 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Destination.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Destination.class), Matchers.anyString());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateConsumerWithSelectorNoLocal() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createConsumer(any(Destination.class), anyString(), anyBoolean());
+        Mockito.doThrow(IllegalStateException.class).when(session).createConsumer(Matchers.any(Destination.class), Matchers.anyString(), Matchers.anyBoolean());
 
         try {
             context.createConsumer(context.createTemporaryQueue(), "a = b", true);
@@ -1125,18 +1102,18 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createConsumer(any(Destination.class), anyString(), anyBoolean());
+        Mockito.verify(session, Mockito.times(1)).createConsumer(Matchers.any(Destination.class), Matchers.anyString(), Matchers.anyBoolean());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateDurableConsumer() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createDurableConsumer(any(Topic.class), anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
 
         try {
             context.createDurableConsumer(context.createTemporaryTopic(), "name");
@@ -1146,19 +1123,19 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateDurableConsumerSelectorNoLocal() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
         Mockito.doThrow(IllegalStateException.class).when(session).
-            createDurableConsumer(any(Topic.class), anyString(), anyString(), anyBoolean());
+            createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString(), Matchers.anyBoolean());
 
         try {
             context.createDurableConsumer(context.createTemporaryTopic(), "name", "a = b", true);
@@ -1168,18 +1145,18 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(any(Topic.class), anyString(), anyString(), anyBoolean());
+        Mockito.verify(session, Mockito.times(1)).createDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString(), Matchers.anyBoolean());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateSharedConsumer() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createSharedConsumer(any(Topic.class), anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString());
 
         try {
             context.createSharedConsumer(context.createTemporaryTopic(), "name");
@@ -1189,19 +1166,19 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateSharedConsumerSelectorNoLocal() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
         Mockito.doThrow(IllegalStateException.class).when(session).
-            createSharedConsumer(any(Topic.class), anyString(), anyString());
+            createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
 
         try {
             context.createSharedConsumer(context.createTemporaryTopic(), "name", "a = b");
@@ -1211,18 +1188,18 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(any(Topic.class), anyString(), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateSharedDurableConsumer() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createSharedDurableConsumer(any(Topic.class), anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
 
         try {
             context.createSharedDurableConsumer(context.createTemporaryTopic(), "name");
@@ -1232,19 +1209,19 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(any(Topic.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateSharedDurableConsumerSelectorNoLocal() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
+        Mockito.when(connection.createTemporaryTopic()).thenReturn(new JmsTemporaryTopic());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
         Mockito.doThrow(IllegalStateException.class).when(session).
-        createSharedDurableConsumer(any(Topic.class), anyString(), anyString());
+        createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
 
         try {
             context.createSharedDurableConsumer(context.createTemporaryTopic(), "name", "a = b");
@@ -1254,18 +1231,18 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(any(Topic.class), anyString(), anyString());
+        Mockito.verify(session, Mockito.times(1)).createSharedDurableConsumer(Matchers.any(Topic.class), Matchers.anyString(), Matchers.anyString());
     }
 
     @Test
     public void testRuntimeExceptionOnCreateQueueBrowser() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createBrowser(any(Queue.class));
+        Mockito.doThrow(IllegalStateException.class).when(session).createBrowser(Matchers.any(Queue.class));
 
         try {
             context.createBrowser(context.createTemporaryQueue());
@@ -1275,18 +1252,18 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createBrowser(any(Queue.class));
+        Mockito.verify(session, Mockito.times(1)).createBrowser(Matchers.any(Queue.class));
     }
 
     @Test
     public void testRuntimeExceptionOnCreateQueueBrowserWithSelector() throws JMSException {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsSession session = Mockito.mock(JmsSession.class);
+        Mockito.when(connection.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
-        Mockito.when(session.createTemporaryQueue()).thenReturn(new JmsTemporaryQueue());
         JmsContext context = new JmsContext(connection, JMSContext.AUTO_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createBrowser(any(Queue.class), anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createBrowser(Matchers.any(Queue.class), Matchers.anyString());
 
         try {
             context.createBrowser(context.createTemporaryQueue(), "a == b");
@@ -1296,7 +1273,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
             context.close();
         }
 
-        Mockito.verify(session, Mockito.times(1)).createBrowser(any(Queue.class), anyString());
+        Mockito.verify(session, Mockito.times(1)).createBrowser(Matchers.any(Queue.class), Matchers.anyString());
     }
 
     @Test
@@ -1304,7 +1281,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(connection).createSession(anyInt());
+        Mockito.doThrow(IllegalStateException.class).when(connection).createSession(Matchers.anyInt());
 
         try {
             context.createTemporaryQueue();
@@ -1425,7 +1402,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).unsubscribe(anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).unsubscribe(Matchers.anyString());
 
         try {
             context.unsubscribe("subscription");
@@ -1443,7 +1420,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createTopic(anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createTopic(Matchers.anyString());
 
         try {
             context.createTopic("test");
@@ -1461,7 +1438,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createQueue(anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createQueue(Matchers.anyString());
 
         try {
             context.createQueue("test");
@@ -1529,7 +1506,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(connection).setClientID(anyString());
+        Mockito.doThrow(IllegalStateException.class).when(connection).setClientID(Matchers.anyString());
 
         try {
             context.setClientID("client");
@@ -1561,7 +1538,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         JmsConnection connection = Mockito.mock(JmsConnection.class);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(connection).setExceptionListener(nullable(ExceptionListener.class));
+        Mockito.doThrow(IllegalStateException.class).when(connection).setExceptionListener(Matchers.any(ExceptionListener.class));
 
         try {
             context.setExceptionListener(null);
@@ -1631,7 +1608,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createTextMessage(anyString());
+        Mockito.doThrow(IllegalStateException.class).when(session).createTextMessage(Matchers.anyString());
 
         try {
             context.createTextMessage("test");
@@ -1721,7 +1698,7 @@ public class JmsContextTest extends JmsConnectionTestSupport {
         Mockito.when(connection.createSession(Mockito.anyInt())).thenReturn(session);
         JmsContext context = new JmsContext(connection, JMSContext.CLIENT_ACKNOWLEDGE);
 
-        Mockito.doThrow(IllegalStateException.class).when(session).createObjectMessage(any(Serializable.class));
+        Mockito.doThrow(IllegalStateException.class).when(session).createObjectMessage(Matchers.any(Serializable.class));
 
         try {
             context.createObjectMessage(UUID.randomUUID());

@@ -17,8 +17,6 @@
 package org.apache.qpid.jms.selector;
 
 import java.io.StringReader;
-import java.util.Collections;
-import java.util.Map;
 
 import org.apache.qpid.jms.selector.filter.BooleanExpression;
 import org.apache.qpid.jms.selector.filter.FilterException;
@@ -27,7 +25,7 @@ import org.apache.qpid.jms.util.LRUCache;
 
 public class SelectorParser {
 
-    private static final Map<String, Object> cache = Collections.synchronizedMap(new LRUCache<String, Object>(100));
+    private static final LRUCache<Object, Object> cache = new LRUCache<Object, Object>(100);
 
     public static BooleanExpression parse(String sql) throws FilterException {
         Object result = cache.get(sql);

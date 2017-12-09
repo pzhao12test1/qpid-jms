@@ -39,8 +39,6 @@ import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSSecurityException;
 import java.io.File;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -58,20 +56,17 @@ public class SaslGssApiIntegrationTest extends QpidJmsTestCase {
     private static final Symbol ANONYMOUS = Symbol.valueOf("ANONYMOUS");
     private static final Symbol PLAIN = Symbol.valueOf("PLAIN");
     private static final String KRB5_KEYTAB = "target/SaslGssApiIntegrationTest.krb5.keytab";
+    private static final String SERVICE_PRINCIPAL = "amqp/localhost";
     private static final String CLIENT_PRINCIPAL_LOGIN_CONFIG = "clientprincipal";
     private static final String CLIENT_PRINCIPAL_FACTORY_USERNAME = "factoryusername";
     private static final String CLIENT_PRINCIPAL_URI_USERNAME = "uriusername";
     private static final String CLIENT_PRINCIPAL_DEFAULT_CONFIG_SCOPE = "defaultscopeprincipal";
 
-    private static String servicePrincipal;
     private static MiniKdc kdc;
     private static final boolean DEBUG = false;
 
     @BeforeClass
     public static void setUpKerberos() throws Exception {
-        servicePrincipal = prepareServiceName();
-        LOG.info("Using service principal: " + servicePrincipal);
-
         Path targetDir = FileSystems.getDefault().getPath("target");
         Path tempDirectory = Files.createTempDirectory(targetDir, "junit.SaslGssApiIntegrationTest.");
         File root = tempDirectory.toFile();
@@ -82,14 +77,14 @@ public class SaslGssApiIntegrationTest extends QpidJmsTestCase {
         // hard coded match, default_keytab_name in minikdc-krb5.conf template
         File userKeyTab = new File(KRB5_KEYTAB);
         kdc.createPrincipal(userKeyTab, CLIENT_PRINCIPAL_LOGIN_CONFIG, CLIENT_PRINCIPAL_FACTORY_USERNAME,
-                CLIENT_PRINCIPAL_URI_USERNAME, CLIENT_PRINCIPAL_DEFAULT_CONFIG_SCOPE, servicePrincipal);
+                CLIENT_PRINCIPAL_URI_USERNAME, CLIENT_PRINCIPAL_DEFAULT_CONFIG_SCOPE, SERVICE_PRINCIPAL);
+
+        Keytab kt = Keytab.read(userKeyTab);
+        for (KeytabEntry entry : kt.getEntries()) {
+            LOG.info("KeyTab Kerb PrincipalNames:" + entry.getPrincipalName());
+        }
 
         if (DEBUG) {
-            Keytab kt = Keytab.read(userKeyTab);
-            for (KeytabEntry entry : kt.getEntries()) {
-                LOG.info("KeyTab Entry: PrincipalName:" + entry.getPrincipalName() + " ; KeyInfo:"+ entry.getKey().getKeyType());
-            }
-
             java.util.logging.Logger logger = java.util.logging.Logger.getLogger("javax.security.sasl");
             logger.setLevel(java.util.logging.Level.FINEST);
             logger.addHandler(new java.util.logging.ConsoleHandler());
@@ -97,18 +92,6 @@ public class SaslGssApiIntegrationTest extends QpidJmsTestCase {
                 handler.setLevel(java.util.logging.Level.FINEST);
             }
         }
-    }
-
-    private static String prepareServiceName() {
-        InetSocketAddress addr = new InetSocketAddress("localhost", 0);
-        InetAddress inetAddress = addr.getAddress();
-        if (inetAddress != null) {
-            if ("localhost.localdomain".equals(inetAddress.getCanonicalHostName())) {
-                return "amqp/localhost.localdomain";
-            }
-        }
-
-        return "amqp/localhost";
     }
 
     @AfterClass
@@ -143,7 +126,7 @@ public class SaslGssApiIntegrationTest extends QpidJmsTestCase {
     private void doSaslGssApiKrbConnectionTestImpl(String configScope, String clientAuthIdAtServer) throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
 
-            testPeer.expectSaslGSSAPI(servicePrincipal, KRB5_KEYTAB, clientAuthIdAtServer);
+            testPeer.expectSaslGSSAPI(SERVICE_PRINCIPAL, KRB5_KEYTAB, clientAuthIdAtServer);
             testPeer.expectOpen();
 
             // Each connection creates a session for managing temporary destinations etc
@@ -171,7 +154,7 @@ public class SaslGssApiIntegrationTest extends QpidJmsTestCase {
     public void testSaslGssApiKrbConnectionWithPrincipalViaJmsUsernameUri() throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
 
-            testPeer.expectSaslGSSAPI(servicePrincipal, KRB5_KEYTAB, CLIENT_PRINCIPAL_URI_USERNAME + "@EXAMPLE.COM");
+            testPeer.expectSaslGSSAPI(SERVICE_PRINCIPAL, KRB5_KEYTAB, CLIENT_PRINCIPAL_URI_USERNAME + "@EXAMPLE.COM");
             testPeer.expectOpen();
 
             // Each connection creates a session for managing temporary destinations etc
@@ -199,7 +182,7 @@ public class SaslGssApiIntegrationTest extends QpidJmsTestCase {
     public void testSaslGssApiKrbConnectionWithPrincipalViaJmsUsernameConnFactory() throws Exception {
         try (TestAmqpPeer testPeer = new TestAmqpPeer();) {
 
-            testPeer.expectSaslGSSAPI(servicePrincipal, KRB5_KEYTAB, CLIENT_PRINCIPAL_FACTORY_USERNAME + "@EXAMPLE.COM");
+            testPeer.expectSaslGSSAPI(SERVICE_PRINCIPAL, KRB5_KEYTAB, CLIENT_PRINCIPAL_FACTORY_USERNAME + "@EXAMPLE.COM");
             testPeer.expectOpen();
 
             // Each connection creates a session for managing temporary destinations etc

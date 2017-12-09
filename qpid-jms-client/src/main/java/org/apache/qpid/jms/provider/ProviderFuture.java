@@ -75,22 +75,16 @@ public class ProviderFuture implements AsyncResult {
      * @param unit
      *        The unit to use for this wait period.
      *
-     * @return true if the operation succeeded and false if the waiting time elapsed while
-     * 	       waiting for the operation to complete.
-     *
      * @throws IOException if an error occurs while waiting for the response.
      */
-    public boolean sync(long amount, TimeUnit unit) throws IOException {
-        boolean result = false;
+    public void sync(long amount, TimeUnit unit) throws IOException {
         try {
-            result = latch.await(amount, unit);
+            latch.await(amount, unit);
         } catch (InterruptedException e) {
             Thread.interrupted();
             throw IOExceptionSupport.create(e);
         }
         failOnError();
-
-        return result;
     }
 
     /**
