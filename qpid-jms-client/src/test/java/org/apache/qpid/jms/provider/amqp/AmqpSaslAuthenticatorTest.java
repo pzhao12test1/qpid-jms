@@ -16,11 +16,12 @@
  */
 package org.apache.qpid.jms.provider.amqp;
 
+import static org.apache.qpid.proton.engine.Sasl.SaslState;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -33,15 +34,15 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.function.Function;
 
-import javax.jms.JMSSecurityRuntimeException;
 import javax.security.sasl.SaslException;
 
-import org.apache.qpid.jms.sasl.Mechanism;
-import org.apache.qpid.proton.engine.Sasl;
-import org.apache.qpid.proton.engine.Sasl.SaslState;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
+
+import org.apache.qpid.jms.provider.AsyncResult;
+import org.apache.qpid.jms.sasl.Mechanism;
+import org.apache.qpid.proton.engine.Sasl;
 
 public class AmqpSaslAuthenticatorTest {
 
@@ -60,23 +61,8 @@ public class AmqpSaslAuthenticatorTest {
     }
 
     @Test
-    public void testNullSaslMechanismReturnedErroneously() throws Exception {
-        Function<String[], Mechanism> mechanismFunction = mechanismName -> null;
-
-        AmqpSaslAuthenticator authenticator = new AmqpSaslAuthenticator(sasl, mechanismFunction);
-        authenticator.tryAuthenticate();
-
-        assertTrue(authenticator.isComplete());
-        assertFalse(authenticator.wasSuccessful());
-        assertNotNull(authenticator.getFailureCause());
-        assertTrue(authenticator.getFailureCause().getMessage().startsWith("Exception while processing SASL init:"));
-    }
-
-    @Test
     public void testNoSaslMechanismAgreed() throws Exception {
-        Function<String[], Mechanism> mechanismFunction = mechanismName -> {
-            throw new JMSSecurityRuntimeException("reasons");
-        };
+        Function<String[], Mechanism> mechanismFunction = mechanismName -> null;
 
         AmqpSaslAuthenticator authenticator = new AmqpSaslAuthenticator(sasl, mechanismFunction);
         authenticator.tryAuthenticate();
@@ -176,9 +162,9 @@ public class AmqpSaslAuthenticatorTest {
     private void configureSaslMockToProduce(final Sasl sasl, final byte[] challenge) {
         when(sasl.pending()).thenReturn(challenge.length);
         Answer<Void> answer = invocationOnMock -> {
-            byte[] buf = invocationOnMock.getArgument(0);
-            int offset = invocationOnMock.getArgument(1);
-            int length = invocationOnMock.getArgument(2);
+            byte[] buf = invocationOnMock.getArgumentAt(0, byte[].class);
+            int offset = invocationOnMock.getArgumentAt(1, int.class);
+            int length = invocationOnMock.getArgumentAt(2, int.class);
             System.arraycopy(challenge, 0, buf, offset, Math.min(length, challenge.length));
             return null;
         };

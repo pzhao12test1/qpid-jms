@@ -42,7 +42,6 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.net.ssl.SSLContext;
 import javax.security.auth.Subject;
@@ -160,7 +159,7 @@ public class TestAmqpPeer implements AutoCloseable
     private UnsignedInteger _lastInitiatedLinkHandle = null;
     private UnsignedInteger _lastInitiatedCoordinatorLinkHandle = null;
     private int advertisedIdleTimeout = 0;
-    private AtomicInteger _emptyFrameCount = new AtomicInteger();
+    private int _emptyFrameCount = 0;
 
     public TestAmqpPeer() throws IOException
     {
@@ -264,7 +263,7 @@ public class TestAmqpPeer implements AutoCloseable
     }
 
     public int getEmptyFrameCount() {
-        return _emptyFrameCount.get();
+        return _emptyFrameCount;
     }
 
     void receiveHeader(byte[] header)
@@ -305,7 +304,7 @@ public class TestAmqpPeer implements AutoCloseable
 
     void receiveEmptyFrame(int type, int channel)
     {
-        _emptyFrameCount.incrementAndGet();
+        _emptyFrameCount ++;
         LOGGER.debug("Received empty frame");
     }
 
@@ -761,14 +760,6 @@ public class TestAmqpPeer implements AutoCloseable
             }
         });
         addHandler(saslInitMatcher);
-    }
-
-    public void expectSaslMechanismNegotiationFailure(Symbol[] serverMechs)
-    {
-        SaslMechanismsFrame saslMechanismsFrame = new SaslMechanismsFrame().setSaslServerMechanisms(serverMechs);
-        FrameSender mechanismsFrameSender = new FrameSender(this, FrameType.SASL, 0, saslMechanismsFrame, null);
-
-        addHandler(new HeaderHandlerImpl(AmqpHeader.SASL_HEADER, AmqpHeader.SASL_HEADER, mechanismsFrameSender));
     }
 
     /**

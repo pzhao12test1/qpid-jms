@@ -44,9 +44,7 @@ import javax.jms.Destination;
 import javax.jms.IllegalStateException;
 import javax.jms.InvalidDestinationException;
 import javax.jms.InvalidSelectorException;
-import javax.jms.JMSContext;
 import javax.jms.JMSException;
-import javax.jms.JMSRuntimeException;
 import javax.jms.MapMessage;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -1218,18 +1216,6 @@ public class JmsSession implements AutoCloseable, Session, QueueSession, TopicSe
 
     void clearSessionRecovered() {
         sessionRecovered = false;
-    }
-
-    static void validateSessionMode(int mode) {
-        switch (mode) {
-            case JMSContext.AUTO_ACKNOWLEDGE:
-            case JMSContext.CLIENT_ACKNOWLEDGE:
-            case JMSContext.DUPS_OK_ACKNOWLEDGE:
-            case JMSContext.SESSION_TRANSACTED:
-                return;
-            default:
-                throw new JMSRuntimeException("Invalid Session Mode: " + mode);
-        }
     }
 
     //----- Event handlers ---------------------------------------------------//

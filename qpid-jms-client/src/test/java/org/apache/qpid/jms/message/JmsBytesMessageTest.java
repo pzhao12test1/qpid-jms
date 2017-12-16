@@ -18,7 +18,6 @@ package org.apache.qpid.jms.message;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -26,10 +25,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Array;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 
 import javax.jms.BytesMessage;
 import javax.jms.JMSException;
@@ -451,8 +447,8 @@ public class JmsBytesMessageTest {
             msg.writeObject(Short.valueOf((short) 3));
             msg.writeObject(Integer.valueOf(3));
             msg.writeObject(Long.valueOf(300L));
-            msg.writeObject(Float.valueOf(3.3f));
-            msg.writeObject(Double.valueOf(3.3));
+            msg.writeObject(new Float(3.3f));
+            msg.writeObject(new Double(3.3));
             msg.writeObject(new byte[3]);
         } catch (MessageFormatException mfe) {
             fail("objectified primitives should be allowed");
@@ -978,44 +974,6 @@ public class JmsBytesMessageTest {
         } catch (Exception e) {
             fail("should have thrown MessageFormatException");
         }
-
-        try {
-            bytesMessage.getBody(String.class);
-            fail("should have thrown MessageFormatException");
-        } catch (MessageFormatException mfe) {
-        } catch (Exception e) {
-            fail("should have thrown MessageFormatException");
-        }
-
-        try {
-            bytesMessage.getBody(Map.class);
-            fail("should have thrown MessageFormatException");
-        } catch (MessageFormatException mfe) {
-        } catch (Exception e) {
-            fail("should have thrown MessageFormatException");
-        }
-
-        try {
-            bytesMessage.getBody(List.class);
-            fail("should have thrown MessageFormatException");
-        } catch (MessageFormatException mfe) {
-        } catch (Exception e) {
-            fail("should have thrown MessageFormatException");
-        }
-
-        try {
-            bytesMessage.getBody(Array.class);
-            fail("should have thrown MessageFormatException");
-        } catch (MessageFormatException mfe) {
-        } catch (Exception e) {
-            fail("should have thrown MessageFormatException");
-        }
-
-        byte[] read1 = bytesMessage.getBody(byte[].class);
-        assertNotNull(read1);
-
-        byte[] read2 = (byte[]) bytesMessage.getBody(Object.class);
-        assertNotNull(read2);
     }
 
     //---------- Test for misc message methods -------------------------------//
