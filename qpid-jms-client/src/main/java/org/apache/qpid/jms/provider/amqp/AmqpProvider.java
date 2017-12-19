@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.jms.JMSException;
-import javax.jms.JMSSecurityRuntimeException;
 import javax.net.ssl.SSLContext;
 
 import org.apache.qpid.jms.JmsTemporaryDestination;
@@ -60,6 +59,7 @@ import org.apache.qpid.jms.provider.ProviderFuture;
 import org.apache.qpid.jms.provider.ProviderListener;
 import org.apache.qpid.jms.provider.amqp.builders.AmqpClosedConnectionBuilder;
 import org.apache.qpid.jms.provider.amqp.builders.AmqpConnectionBuilder;
+import org.apache.qpid.jms.sasl.GssapiMechanism;
 import org.apache.qpid.jms.sasl.Mechanism;
 import org.apache.qpid.jms.sasl.SaslMechanismFinder;
 import org.apache.qpid.jms.transports.Transport;
@@ -1018,7 +1018,7 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
         // Using nano time since it is not related to the wall clock, which may change
         long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
         long deadline = protonTransport.tick(now);
-        if (deadline != 0) {
+        if (deadline > 0) {
             long delay = deadline - now;
             LOG.trace("IdleTimeoutCheck being initiated, initial delay: {}", delay);
             nextIdleTimeoutCheck = serializer.schedule(new IdleTimeoutCheck(), delay, TimeUnit.MILLISECONDS);
@@ -1375,23 +1375,25 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
         }
     }
 
-    private Mechanism findSaslMechanism(String[] remoteMechanisms) throws JMSSecurityRuntimeException {
+    private Mechanism findSaslMechanism(String[] remoteMechanisms) {
 
         Mechanism mechanism = SaslMechanismFinder.findMatchingMechanism(
             connectionInfo.getUsername(), connectionInfo.getPassword(), transport.getLocalPrincipal(), saslMechanisms, remoteMechanisms);
 
-        mechanism.setUsername(connectionInfo.getUsername());
-        mechanism.setPassword(connectionInfo.getPassword());
+        if (mechanism != null) {
+            mechanism.setUsername(connectionInfo.getUsername());
+            mechanism.setPassword(connectionInfo.getPassword());
 
-        try {
-            Map<String, String> saslOptions = PropertyUtil.filterProperties(PropertyUtil.parseQuery(getRemoteURI()), "sasl.options.");
-            if (!saslOptions.containsKey("serverName")) {
-                saslOptions.put("serverName", remoteURI.getHost());
+            try {
+                Map<String, String> saslOptions = PropertyUtil.filterProperties(PropertyUtil.parseQuery(getRemoteURI()), "sasl.options.");
+                if (!saslOptions.containsKey("serverName")) {
+                    saslOptions.put("serverName", remoteURI.getHost());
+                }
+
+                mechanism.init(Collections.unmodifiableMap(saslOptions));
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to apply sasl options to mechanism: " + mechanism.getName() + ", reason: " + ex.toString(), ex);
             }
-
-            mechanism.init(Collections.unmodifiableMap(saslOptions));
-        } catch (Exception ex) {
-            throw new RuntimeException("Failed to apply sasl options to mechanism: " + mechanism.getName() + ", reason: " + ex.toString(), ex);
         }
 
         return mechanism;
@@ -1415,7 +1417,7 @@ public class AmqpProvider implements Provider, TransportListener , AmqpResourceP
                         fireProviderException(new IOException("Transport closed due to the peer exceeding our requested idle-timeout"));
                     }
                 } else {
-                    if (deadline != 0) {
+                    if (deadline > 0) {
                         long delay = deadline - now;
                         checkScheduled = true;
                         LOG.trace("IdleTimeoutCheck rescheduling with delay: {}", delay);

@@ -28,11 +28,7 @@ import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
  */
 public final class FifoMessageQueue extends AbstractMessageQueue {
 
-    protected final Deque<JmsInboundMessageDispatch> queue;
-
-    public FifoMessageQueue(int prefetchSize) {
-        this.queue = new ArrayDeque<JmsInboundMessageDispatch>(prefetchSize);
-    }
+    protected final Deque<JmsInboundMessageDispatch> queue = new ArrayDeque<JmsInboundMessageDispatch>();
 
     @Override
     public void enqueueFirst(JmsInboundMessageDispatch envelope) {

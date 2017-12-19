@@ -18,7 +18,6 @@ package org.apache.qpid.jms.consumer;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyLong;
 
 import java.util.Map;
 
@@ -30,6 +29,7 @@ import org.apache.qpid.jms.JmsConsumer;
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.JmsSession;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 /**
@@ -94,7 +94,7 @@ public class JmsConsumerTest {
             consumer.close();
         }
 
-        Mockito.verify(messageConsumer, Mockito.times(1)).receive(anyLong());
+        Mockito.verify(messageConsumer, Mockito.times(1)).receive(Matchers.anyInt());
     }
 
     @Test
@@ -279,7 +279,7 @@ public class JmsConsumerTest {
         JmsMessageConsumer messageConsumer = Mockito.mock(JmsMessageConsumer.class);
         JmsConsumer consumer = new JmsConsumer(session, messageConsumer);
 
-        Mockito.doThrow(IllegalStateException.class).when(messageConsumer).receive(anyLong());
+        Mockito.doThrow(IllegalStateException.class).when(messageConsumer).receive(Matchers.anyInt());
 
         try {
             consumer.receive(100);

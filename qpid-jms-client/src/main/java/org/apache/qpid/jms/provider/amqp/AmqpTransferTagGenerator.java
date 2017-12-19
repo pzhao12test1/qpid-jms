@@ -16,8 +16,10 @@
  */
 package org.apache.qpid.jms.provider.amqp;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.io.UnsupportedEncodingException;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * Utility class that can generate and if enabled pool the binary tag values
@@ -27,18 +29,18 @@ public final class AmqpTransferTagGenerator {
 
     public static final int DEFAULT_TAG_POOL_SIZE = 1024;
 
-    private final Deque<byte[]> tagPool;
-
     private long nextTagId;
     private int maxPoolSize = DEFAULT_TAG_POOL_SIZE;
 
+    private final Set<byte[]> tagPool;
+
     public AmqpTransferTagGenerator() {
-        this(true);
+        this(false);
     }
 
     public AmqpTransferTagGenerator(boolean pool) {
         if (pool) {
-            this.tagPool = new ArrayDeque<byte[]>();
+            this.tagPool = new LinkedHashSet<byte[]>();
         } else {
             this.tagPool = null;
         }
@@ -50,24 +52,20 @@ public final class AmqpTransferTagGenerator {
      * @return a new or unused tag depending on the pool option.
      */
     public byte[] getNextTag() {
-        byte[] tagBytes = null;
-
-        if (tagPool != null) {
-            tagBytes = tagPool.pollFirst();
-        }
-
-        if (tagBytes == null) {
-            long tag = nextTagId++;
-            int size = encodingSize(tag);
-
-            tagBytes = new byte[size];
-
-            for (int i = 0; i < size; ++i) {
-                tagBytes[size - 1 - i] = (byte) (tag >>> (i * 8));
+        byte[] rc;
+        if (tagPool != null && !tagPool.isEmpty()) {
+            final Iterator<byte[]> iterator = tagPool.iterator();
+            rc = iterator.next();
+            iterator.remove();
+        } else {
+            try {
+                rc = Long.toHexString(nextTagId++).getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                // This should never happen since we control the input.
+                throw new RuntimeException(e);
             }
         }
-
-        return tagBytes;
+        return rc;
     }
 
     /**
@@ -79,7 +77,7 @@ public final class AmqpTransferTagGenerator {
      */
     public void returnTag(byte[] data) {
         if (tagPool != null && tagPool.size() < maxPoolSize) {
-            tagPool.offerLast(data);
+            tagPool.add(data);
         }
     }
 
@@ -101,25 +99,5 @@ public final class AmqpTransferTagGenerator {
      */
     public void setMaxPoolSize(int maxPoolSize) {
         this.maxPoolSize = maxPoolSize;
-    }
-
-    /**
-     * @return true if the generator is using a pool of tags to reduce allocations.
-     */
-    public boolean isPooling() {
-        return tagPool != null;
-    }
-
-    private int encodingSize(long value) {
-        if (value < 0) {
-            return Long.BYTES;
-        }
-
-        int size = 1;
-        while (size < 8 && (value >= (1L << (size * 8)))) {
-            size++;
-        }
-
-        return size;
     }
 }
