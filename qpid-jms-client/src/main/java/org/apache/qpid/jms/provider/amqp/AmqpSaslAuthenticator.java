@@ -19,7 +19,6 @@ package org.apache.qpid.jms.provider.amqp;
 import java.util.function.Function;
 
 import javax.jms.JMSSecurityException;
-import javax.jms.JMSSecurityRuntimeException;
 
 import org.apache.qpid.jms.sasl.Mechanism;
 import org.apache.qpid.proton.engine.Sasl;
@@ -98,18 +97,16 @@ public class AmqpSaslAuthenticator {
         try {
             String[] remoteMechanisms = sasl.getRemoteMechanisms();
             if (remoteMechanisms != null && remoteMechanisms.length != 0) {
-                try {
-                    mechanism = mechanismFinder.apply(remoteMechanisms);
-                } catch (JMSSecurityRuntimeException jmssre){
-                    recordFailure("Could not find a suitable SASL mechanism. " + jmssre.getMessage(), jmssre);
-                    return;
+                mechanism = mechanismFinder.apply(remoteMechanisms);
+                if (mechanism != null) {
+                    byte[] response = mechanism.getInitialResponse();
+                    if (response != null) {
+                        sasl.send(response, 0, response.length);
+                    }
+                    sasl.setMechanisms(mechanism.getName());
+                } else {
+                    recordFailure("Could not find a suitable SASL mechanism for the remote peer using the available credentials.", null);
                 }
-
-                byte[] response = mechanism.getInitialResponse();
-                if (response != null) {
-                    sasl.send(response, 0, response.length);
-                }
-                sasl.setMechanisms(mechanism.getName());
             }
         } catch (Throwable error) {
             recordFailure("Exception while processing SASL init: " + error.getMessage(), error);

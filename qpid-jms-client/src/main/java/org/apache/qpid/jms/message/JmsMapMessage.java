@@ -243,12 +243,12 @@ public class JmsMapMessage extends JmsMessage implements MapMessage {
     @Override
     public void setFloat(String name, float value) throws JMSException {
         checkReadOnlyBody();
-        put(name, Float.valueOf(value));
+        put(name, new Float(value));
     }
 
     @Override
     public void setDouble(String name, double value) throws JMSException {
-        put(name, Double.valueOf(value));
+        put(name, new Double(value));
     }
 
     @Override

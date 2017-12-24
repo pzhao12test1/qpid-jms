@@ -18,12 +18,9 @@ package org.apache.qpid.jms.sasl;
 
 import java.security.Principal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-
-import javax.jms.JMSSecurityRuntimeException;
 
 import org.apache.qpid.jms.util.FactoryFinder;
 import org.apache.qpid.jms.util.ResourceNotFoundException;
@@ -66,15 +63,13 @@ public class SaslMechanismFinder {
      *        list of mechanism names that are supported by the remote peer.
      *
      * @return the best matching Mechanism for the supported remote set.
-     * @throws JMSSecurityRuntimeException if no matching mechanism can be identified
      */
-    public static Mechanism findMatchingMechanism(String username, String password, Principal localPrincipal, Set<String> mechRestrictions, String... remoteMechanisms) throws JMSSecurityRuntimeException {
+    public static Mechanism findMatchingMechanism(String username, String password, Principal localPrincipal, Set<String> mechRestrictions, String... remoteMechanisms) {
 
         Mechanism match = null;
         List<Mechanism> found = new ArrayList<Mechanism>();
-        List<String> remoteMechanismNames = Arrays.asList(remoteMechanisms);
 
-        for (String remoteMechanism : remoteMechanismNames) {
+        for (String remoteMechanism : remoteMechanisms) {
             MechanismFactory factory = findMechanismFactory(remoteMechanism);
             if (factory != null) {
                 Mechanism mech = factory.createMechanism();
@@ -99,8 +94,6 @@ public class SaslMechanismFinder {
             // list which is the Mechanism deemed to be the highest priority match.
             Collections.sort(found);
             match = found.get(found.size() - 1);
-        } else {
-            throw new JMSSecurityRuntimeException("No supported mechanism, or none usable with the available credentials. Server offered: " + remoteMechanismNames);
         }
 
         LOG.info("Best match for SASL auth was: {}", match);

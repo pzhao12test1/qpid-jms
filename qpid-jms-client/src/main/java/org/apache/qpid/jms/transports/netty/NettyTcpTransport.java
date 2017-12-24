@@ -50,9 +50,6 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollSocketChannel;
-import io.netty.channel.kqueue.KQueue;
-import io.netty.channel.kqueue.KQueueEventLoopGroup;
-import io.netty.channel.kqueue.KQueueSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.logging.LoggingHandler;
@@ -142,13 +139,9 @@ public class NettyTcpTransport implements Transport {
             sslHandler = null;
         }
 
-        boolean useKQueue = getTransportOptions().isUseKQueue() && KQueue.isAvailable();
         boolean useEpoll = getTransportOptions().isUseEpoll() && Epoll.isAvailable();
 
-        if (useKQueue) {
-            LOG.trace("Netty Transport using KQueue mode");
-            group = new KQueueEventLoopGroup(1);
-        } else if (useEpoll) {
+        if (useEpoll) {
             LOG.trace("Netty Transport using Epoll mode");
             group = new EpollEventLoopGroup(1);
         } else {
@@ -158,9 +151,7 @@ public class NettyTcpTransport implements Transport {
 
         bootstrap = new Bootstrap();
         bootstrap.group(group);
-        if (useKQueue) {
-            bootstrap.channel(KQueueSocketChannel.class);
-        } else if (useEpoll) {
+        if (useEpoll) {
             bootstrap.channel(EpollSocketChannel.class);
         } else {
             bootstrap.channel(NioSocketChannel.class);
